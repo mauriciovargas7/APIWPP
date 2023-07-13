@@ -1,0 +1,57 @@
+from flask import Flask, request
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+import time
+import urllib
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.wait import WebDriverWait
+
+
+def start_browser():
+    try:
+        print("Iniciando navegador...")
+        options = Options()
+        options.add_argument("start-maximized")
+        options.add_argument("--lang=pt-BR")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+        wait = WebDriverWait(browser, 120)
+        return browser, wait
+    except Exception as err:
+        raise ValueError("Falha ao iniciar navegador.", str(err))
+
+
+app = Flask(__name__)
+
+@app.route('/', methods=['GET'])
+def hello_world():
+    return ("Hello, world! A API ESTÁ ONLINE")
+
+@app.route('/send_message', methods=['GET'])
+def send_message():
+    token = request.args.get('token')
+    if token == "N3uzZ7F644b3ceb3d675":
+        phone = request.args.get('phone')
+        message = urllib.parse.quote(request.args.get('message'))
+
+        browser, wait = start_browser()
+        browser.get('https://web.whatsapp.com/')
+
+        wait.until(EC.element_to_be_clickable(('xpath', '//*[@id="app"]/div/div/div[4]/header/div[1]/div/img')))
+
+        browser.get(f"https://web.whatsapp.com/send?phone={phone}&text={message}")
+        wait.until(EC.element_to_be_clickable(('xpath','/html/body/div[1]/div/div/div[5]/div/footer/div[1]/div/span[2]/div/div[2]/div[1]/div/div'))).send_keys(Keys.ENTER)
+        time.sleep(5)
+
+        browser.quit()
+        return 'Mensagem enviada com sucesso para ' + phone
+    else:
+        return "FALHA NA AUTENTICAÇÃO!"
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", debug=False)
